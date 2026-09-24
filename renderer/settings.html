@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speakeasy AI · Settings</title>
+  <style>
+    * { margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;
+        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;cursor:default!important; }
+    input,select,textarea { user-select:text;-webkit-user-select:text;cursor:text!important; }
+    body {
+      background:#eceff1; overflow:hidden; height:100vh;
+      -webkit-font-smoothing:antialiased; display:flex; flex-direction:column;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    .settings-window {
+      height:100%; display:flex; flex-direction:column;
+      background:#eceff1; min-width:0;
+    }
+
+    /* Header */
+    .s-header {
+      background:white; border-bottom:1px solid #dfe4e8;
+      padding:12px 16px; display:flex; align-items:center; justify-content:space-between;
+      -webkit-app-region:drag; flex-shrink:0;
+    }
+    .s-header > .s-title { -webkit-app-region:drag; }
+    .s-header > .close-btn,
+    .s-header > .close-btn * { -webkit-app-region:no-drag; }
+    .s-title { font-size:15px; font-weight:700; color:#1a252f; letter-spacing:-0.03em; }
+    .close-btn {
+      background:none;border:none;color:#dc2626;font-size:16px;font-weight:600;
+      padding:4px 8px;border-radius:6px;transition:all 0.15s;
+    }
+    .close-btn:hover { background:#fef2f2;color:#991b1b; }
+
+    /* Body */
+    .s-body {
+      flex:1; overflow-y:auto; overflow-x:hidden;
+      padding:12px;
+      scroll-behavior:smooth;
+      overscroll-behavior:contain;
+      -webkit-overflow-scrolling:touch;
+    }
+    .s-body::-webkit-scrollbar { width:4px; }
+    .s-body::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.15); border-radius:3px; }
+
+    /* Section */
+    .section { background:white; border-radius:10px; border:1px solid #dfe4e8; margin-bottom:14px; overflow:hidden; }
+    .section-title {
+      font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;
+      color:#90a4ae;padding:10px 14px 6px;
+    }
+    .section-body { padding:0 14px 14px; }
+
+    /* Field */
+    .field { margin-bottom:12px; }
+    .field:last-child { margin-bottom:0; }
+    .field-label { font-size:12px;font-weight:500;color:#1a252f;margin-bottom:5px;display:block; }
+    .field-hint { font-size:11px;color:#90a4ae;margin-top:4px; }
+    .field-hint a { color:#2c3e50;text-decoration:none; }
+
+    .f-input {
+      width:100%;padding:8px 10px;
+      border:1px solid #dfe4e8;border-radius:6px;
+      font-size:13px;color:#1a252f;background:white;
+      transition:all 0.15s;
+    }
+    .f-input:focus { outline:none;border-color:#2c3e50;box-shadow:0 0 0 3px rgba(44,62,80,0.1); }
+    select.f-input { cursor:pointer!important; }
+
+    /* API Key row */
+    .api-row { display:flex;gap:8px;align-items:stretch; }
+    .api-row .f-input { flex:1; }
+    .btn-sm {
+      padding:8px 12px;background:#2c3e50;color:white;border:none;
+      border-radius:6px;font-size:12px;font-weight:500;transition:all 0.15s;
+      white-space:nowrap;
+    }
+    .btn-sm:hover { background:#1a252f; }
+    .btn-sm:disabled { opacity:0.5;cursor:not-allowed!important; }
+    .btn-sm.checking { position:relative;pointer-events:none; }
+
+    .key-status { display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px; }
+    .key-status.valid { color:#166534; }
+    .key-status.invalid { color:#991b1b; }
+    .key-status.checking { color:#92400e; }
+    .key-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+    .key-dot.valid { background:#22c55e; }
+    .key-dot.invalid { background:#ef4444; }
+    .key-dot.checking { background:#fbbf24;animation:spin 1s linear infinite; }
+
+    /* Toggle row */
+    .toggle-row {
+      display:flex;align-items:center;justify-content:space-between;
+      padding:8px 0;border-bottom:1px solid #f5f7f9;
+    }
+    .toggle-row:last-child { border-bottom:none;padding-bottom:0; }
+    .toggle-info { flex:1; }
+    .toggle-name { font-size:13px;font-weight:500;color:#1a252f; }
+    .toggle-desc { font-size:11px;color:#90a4ae;margin-top:2px; }
+    .toggle {
+      position:relative;width:36px;height:20px;flex-shrink:0;margin-left:12px;
+    }
+    .toggle input { display:none; }
+    .toggle-track {
+      position:absolute;inset:0;background:#dfe4e8;border-radius:10px;
+      transition:all 0.15s;cursor:pointer;
+    }
+    .toggle-thumb {
+      position:absolute;width:16px;height:16px;background:white;
+      border-radius:50%;top:2px;left:2px;transition:all 0.15s;
+      box-shadow:0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle input:checked ~ .toggle-track { background:#2c3e50; }
+    .toggle input:checked ~ .toggle-thumb { left:18px; }
+
+    /* Number input */
+    .number-row { display:flex;align-items:center;gap:10px; }
+    .number-row .f-input { width:70px; }
+    .number-label { font-size:12px;color:#546e7a; }
+
+    /* Range */
+    .range-row { display:flex;align-items:center;gap:10px; }
+    .f-range {
+      flex:1;appearance:none;height:4px;
+      background:#dfe4e8;border-radius:2px;outline:none;
+    }
+    .f-range::-webkit-slider-thumb {
+      appearance:none;width:16px;height:16px;
+      background:#2c3e50;border-radius:50%;cursor:pointer;
+    }
+    .range-val { font-size:12px;color:#546e7a;min-width:36px;text-align:right; }
+
+    /* Position grid */
+    .pos-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:6px; }
+    .pos-option {
+      padding:6px;background:white;border:1px solid #dfe4e8;
+      border-radius:6px;text-align:center;font-size:11px;color:#546e7a;
+      transition:all 0.15s;cursor:pointer;
+    }
+    .pos-option:hover { border-color:#2c3e50;color:#1a252f; }
+    .pos-option.active { background:#2c3e50;color:white;border-color:#2c3e50; }
+
+    /* Save button */
+    .save-bar { padding:12px 16px;background:white;border-top:1px solid #dfe4e8;flex-shrink:0; }
+    .btn-save {
+      width:100%;padding:9px;background:#2c3e50;color:white;border:none;
+      border-radius:8px;font-size:14px;font-weight:600;transition:all 0.15s;
+    }
+    .btn-save:hover { background:#1a252f; }
+    .save-msg { text-align:center;font-size:12px;color:#22c55e;margin-top:6px;height:16px; }
+
+    /* ── Responsive Layout ── */
+    @media (max-width: 600px) {
+      .settings-window {
+        height: 100dvh;
+      }
+      
+      .s-header {
+        padding: 10px 12px;
+      }
+      
+      .s-title {
+        font-size: 13px;
+      }
+
+      .s-body {
+        padding: 10px;
+      }
+
+      .section {
+        margin-bottom: 10px;
+      }
+
+      .api-row {
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .api-row .btn-sm {
+        width: 100%;
+      }
+
+      .pos-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .number-row .f-input {
+        width: 60px;
+      }
+
+      .save-bar {
+        padding: 10px 12px;
+      }
+    }
+
+    @media (min-width: 601px) {
+      .settings-window {
+        max-width: 480px;
+        margin: 0 auto;
+      }
+    }
+
+    @media (orientation: landscape) and (max-height: 500px) {
+      .s-body {
+        padding: 8px;
+      }
+      
+      .section {
+        margin-bottom: 8px;
+      }
+      
+      .section-title {
+        padding: 8px 12px 4px;
+      }
+      
+      .section-body {
+        padding: 0 12px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="settings-window">
+  <div class="s-header">
+    <span class="s-title">⚙ Speakeasy AI Settings</span>
+    <button class="close-btn" onclick="window.electronAPI.closeSettings()">✕</button>
+  </div>
+
+  <div class="s-body">
+
+    <!-- Groq API Key -->
+    <div class="section">
+      <div class="section-title">Groq LLM Key</div>
+      <div class="section-body">
+        <div class="field">
+          <div class="api-row">
+            <input type="password" class="f-input" id="s_apiKey" placeholder="gsk_..." autocomplete="off">
+            <button class="btn-sm" id="btnVerify" onclick="verifyKey()">Verify</button>
+          </div>
+          <div class="key-status" id="keyStatus" style="display:none;"></div>
+          <p class="field-hint">Used for answering & screen analysis. Get it at <a href="#" onclick="openGroqConsole()">console.groq.com</a></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Transcription -->
+    <div class="section">
+      <div class="section-title">Live Transcription</div>
+      <div class="section-body">
+        <div class="field">
+          <label class="field-label">Deepgram API Key</label>
+          <input type="password" class="f-input" id="s_deepgramKey" placeholder="Deepgram Key..." autocomplete="off">
+          <p class="field-hint">Used for low-latency live system audio transcription and streaming STT.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Models -->
+    <div class="section">
+      <div class="section-title">AI Models</div>
+      <div class="section-body">
+        <div class="field">
+          <button class="btn-sm" id="btnRefreshModels" onclick="refreshModels()">Refresh Groq Models</button>
+          <p class="field-hint" id="modelCatalogStatus">Models load from your Groq API key.</p>
+        </div>
+        <div class="field">
+          <label class="field-label">Chat / Answer Model</label>
+          <select class="f-input" id="s_chatModel"></select>
+          <p class="field-hint">Used for generating interview answers</p>
+        </div>
+        <div class="field">
+          <label class="field-label">Speech Model</label>
+          <select class="f-input" id="s_speechModel"></select>
+          <p class="field-hint">Used for fallback Groq transcription of captured system audio</p>
+        </div>
+        <div class="field">
+          <label class="field-label">Vision / Screen Analysis Model</label>
+          <select class="f-input" id="s_visionModel"></select>
+          <p class="field-hint">Used for screen capture analysis and OCR on image-based training notes</p>
+        </div>
+        <div class="field">
+          <label class="field-label">Agent Model</label>
+          <select class="f-input" id="s_agentModel"></select>
+          <p class="field-hint">Reserved for agent workflows and future automation</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Dashboard -->
+    <div class="section">
+      <div class="section-title">AI Dashboard</div>
+      <div class="section-body">
+        <div id="aiMetricsList" style="display:flex;flex-direction:column;gap:8px;">
+          <p class="field-hint">No AI requests yet.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Behavior -->
+    <div class="section">
+      <div class="section-title">Behavior</div>
+      <div class="section-body">
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-name">Auto AI Answer</div>
+            <div class="toggle-desc">Automatically detect and answer questions from system audio</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="s_autoAnswer">
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="toggle-row" style="margin-top:10px;">
+          <div class="toggle-info">
+            <div class="toggle-name">Auto-answer delay</div>
+            <div class="toggle-desc">Seconds of silence before triggering. 2 to 3 seconds is recommended.</div>
+          </div>
+          <div class="number-row">
+            <input type="number" class="f-input" id="s_autoDelay" min="2" max="10" value="3">
+            <span class="number-label">sec</span>
+          </div>
+        </div>
+
+          <!-- Clipboard AI -->
+          <div class="section">
+            <div class="section-title">Clipboard AI</div>
+            <div class="section-body">
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-name">Enable Clipboard Monitoring</div>
+                  <div class="toggle-desc">Automatically detect copied text and show AI answer</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="s_clipboardEnabled">
+                  <div class="toggle-track"></div>
+                  <div class="toggle-thumb"></div>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-name">Enable Auto Answer</div>
+                  <div class="toggle-desc">Automatically trigger AI answer when valid clipboard copied</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="s_clipboardAutoAnswer">
+                  <div class="toggle-track"></div>
+                  <div class="toggle-thumb"></div>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-name">Enable Clipboard History</div>
+                  <div class="toggle-desc">Store last 20 copied items for quick re-use</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="s_clipboardHistory">
+                  <div class="toggle-track"></div>
+                  <div class="toggle-thumb"></div>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-name">Copy AI Answer Automatically</div>
+                  <div class="toggle-desc">When enabled, AI answers are copied to clipboard after generation</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="s_clipboardAutoCopy">
+                  <div class="toggle-track"></div>
+                  <div class="toggle-thumb"></div>
+                </label>
+              </div>
+
+              <div class="field" style="margin-top:10px;">
+                <label class="field-label">Clipboard Cooldown (seconds)</label>
+                <input type="number" class="f-input" id="s_clipboardCooldown" min="0" max="60" value="2">
+              </div>
+
+              <div class="field">
+                <label class="field-label">Maximum Clipboard Size (chars)</label>
+                <input type="number" class="f-input" id="s_clipboardMaxSize" min="64" max="20000" value="10000">
+              </div>
+
+              <div class="field">
+                <label class="field-label">Detection Sensitivity</label>
+                <select class="f-input" id="s_clipboardSensitivity">
+                  <option value="low">Low (fewer triggers)</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High (more triggers)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        <div class="toggle-row" style="margin-top:10px;">
+          <div class="toggle-info">
+            <div class="toggle-name">Anti-Screen Sharing</div>
+            <div class="toggle-desc">Hide window during Zoom/Meet calls</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="s_contentProtection">
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Window -->
+    <div class="section">
+      <div class="section-title">Window</div>
+      <div class="section-body">
+        <div class="field">
+          <label class="field-label">Overlay Opacity</label>
+          <div class="range-row">
+            <input type="range" class="f-range" id="s_opacity" min="20" max="100" value="94"
+              oninput="document.getElementById('s_opacityVal').textContent = this.value + '%'">
+            <span class="range-val" id="s_opacityVal">94%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Default Position</label>
+          <div class="pos-grid" id="posGrid">
+            <div class="pos-option" data-pos="top-left" onclick="selectPos(this)">↖ Top Left</div>
+            <div class="pos-option active" data-pos="top-center" onclick="selectPos(this)">↑ Top Center</div>
+            <div class="pos-option" data-pos="top-right" onclick="selectPos(this)">↗ Top Right</div>
+            <div class="pos-option" data-pos="bottom-left" onclick="selectPos(this)">↙ Bottom Left</div>
+            <div class="pos-option" data-pos="bottom-center" onclick="selectPos(this)">↓ Bottom Center</div>
+            <div class="pos-option" data-pos="bottom-right" onclick="selectPos(this)">↘ Bottom Right</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Keyboard Shortcuts -->
+    <div class="section">
+      <div class="section-title">Keyboard Shortcuts</div>
+      <div class="section-body" style="padding-top:10px;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <tr style="color:#90a4ae;"><td style="padding:4px 0;">Ctrl + Enter</td><td>Generate AI Answer from transcript</td></tr>
+          <tr style="color:#90a4ae;"><td style="padding:4px 0;">Ctrl + Shift + Enter</td><td>Analyze screen & answer</td></tr>
+          <tr style="color:#90a4ae;"><td style="padding:4px 0;">Ctrl + Shift + A</td><td>Toggle AI panel</td></tr>
+          <tr style="color:#90a4ae;"><td style="padding:4px 0;">Ctrl + Shift + T</td><td>Toggle near-camera prompt</td></tr>
+          <tr style="color:#90a4ae;"><td style="padding:4px 0;">Ctrl + Shift + C</td><td>Collapse / expand overlay</td></tr>
+          <tr style="color:#90a4ae;"><td style="padding:4px 0;">Escape</td><td>Close AI panel</td></tr>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="save-bar">
+    <button class="btn-save" onclick="saveSettings()">Save Settings</button>
+    <div class="save-msg" id="saveMsg"></div>
+  </div>
+</div>
+
+<script>
+let selectedPos = 'top-center';
+let modelCatalog = null;
+let aiMetrics = [];
+
+function openGroqConsole() {
+  window.electronAPI.openExternal('https://console.groq.com/keys');
+}
+
+async function verifyKey() {
+  const key = document.getElementById('s_apiKey').value.trim();
+  if (!key) return;
+  const btn = document.getElementById('btnVerify');
+  const status = document.getElementById('keyStatus');
+  btn.disabled = true; btn.textContent = '...';
+  status.style.display = 'flex';
+  status.className = 'key-status checking';
+  status.innerHTML = '<div class="key-dot checking"></div> Checking...';
+
+  const result = await window.electronAPI.validateApiKey(key);
+  if (result.valid) {
+    status.className = 'key-status valid';
+    status.innerHTML = '<div class="key-dot valid"></div> Valid API key ✓';
+  } else {
+    status.className = 'key-status invalid';
+    status.innerHTML = `<div class="key-dot invalid"></div> ${result.error || 'Invalid key'}`;
+  }
+  btn.disabled = false; btn.textContent = 'Verify';
+}
+
+function selectPos(el) {
+  document.querySelectorAll('.pos-option').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+  selectedPos = el.dataset.pos;
+}
+
+function populateModelSelect(selectId, models, selectedValue) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  const availableModels = models || [];
+  const hasSelectedValue = selectedValue && availableModels.some(model => model.id === selectedValue);
+  const options = availableModels.map(model => {
+    const suffix = model.description ? ` - ${model.description}` : '';
+    return `<option value="${model.id}">${model.label}${suffix}</option>`;
+  });
+
+  if (selectedValue && !hasSelectedValue) {
+    options.unshift(`<option value="${selectedValue}">${selectedValue} - unavailable in current Groq catalog</option>`);
+  }
+
+  if (!options.length) {
+    options.push('<option value="">No models available</option>');
+  }
+
+  select.innerHTML = options.join('');
+  select.value = selectedValue || select.options[0]?.value || '';
+}
+
+function renderModelCatalogStatus() {
+  const status = document.getElementById('modelCatalogStatus');
+  if (!status || !modelCatalog) return;
+  const refreshed = modelCatalog.refreshedAt
+    ? new Date(modelCatalog.refreshedAt).toLocaleTimeString()
+    : 'not refreshed';
+  const counts = `Chat ${modelCatalog.chat?.length || 0}, Vision ${modelCatalog.vision?.length || 0}, Speech ${modelCatalog.speech?.length || 0}, Agent ${modelCatalog.agent?.length || 0}`;
+  status.textContent = modelCatalog.error
+    ? `${counts}. Source: ${modelCatalog.source}. Error: ${modelCatalog.error}`
+    : `${counts}. Source: ${modelCatalog.source}. Last refresh: ${refreshed}`;
+}
+
+function populateAllModelSelects(settings) {
+  if (!modelCatalog) return;
+  populateModelSelect('s_chatModel', modelCatalog.chat, settings.chatModel);
+  populateModelSelect('s_speechModel', modelCatalog.speech, settings.speechModel);
+  populateModelSelect('s_visionModel', modelCatalog.vision, settings.visionModel);
+  populateModelSelect('s_agentModel', modelCatalog.agent, settings.agentModel);
+  renderModelCatalogStatus();
+}
+
+async function refreshModels() {
+  const btn = document.getElementById('btnRefreshModels');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Refreshing...';
+  }
+  try {
+    modelCatalog = await window.electronAPI.refreshAIModels();
+    const settings = await window.electronAPI.getSettings();
+    populateAllModelSelects(settings);
+  } catch (err) {
+    const status = document.getElementById('modelCatalogStatus');
+    if (status) status.textContent = 'Could not refresh Groq models.';
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Refresh Groq Models';
+    }
+  }
+}
+
+function renderAIMetrics() {
+  const list = document.getElementById('aiMetricsList');
+  if (!list) return;
+  if (!aiMetrics.length) {
+    list.innerHTML = '<p class="field-hint">No AI requests yet.</p>';
+    return;
+  }
+
+  list.innerHTML = aiMetrics.slice(0, 12).map(metric => {
+    const time = metric.requestTime ? new Date(metric.requestTime).toLocaleTimeString() : '';
+    const error = metric.apiError ? `<div style="color:#991b1b;margin-top:4px;">API Error: ${escapeHtml(metric.apiError)}</div>` : '';
+    const tokenText = `Input ${metric.inputTokens ?? '-'} / Output ${metric.outputTokens ?? '-'} / Total ${metric.totalTokens ?? '-'}`;
+    return `
+      <div style="border:1px solid #dfe4e8;border-radius:8px;padding:8px;background:#f8fafc;font-size:11px;color:#1a252f;">
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+          <strong>${escapeHtml(metric.task || 'AI Request')}</strong>
+          <span>${escapeHtml(time)}</span>
+        </div>
+        <div style="margin-top:4px;">Model: ${escapeHtml(metric.selectedModel || '-')}</div>
+        <div>Latency: ${metric.latencyMs ?? '-'}ms | Fallback: ${metric.fallbackUsed ? 'Yes' : 'No'}</div>
+        <div>Tokens: ${escapeHtml(tokenText)}${metric.estimatedTokens ? ' (estimated)' : ''}</div>
+        ${error}
+      </div>
+    `;
+  }).join('');
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function saveSettings() {
+  const settings = {
+    groqApiKey: document.getElementById('s_apiKey').value.trim(),
+    chatModel: document.getElementById('s_chatModel').value,
+    visionModel: document.getElementById('s_visionModel').value,
+    speechModel: document.getElementById('s_speechModel').value,
+    agentModel: document.getElementById('s_agentModel').value,
+    autoAnswer: document.getElementById('s_autoAnswer').checked,
+    autoAnswerDelay: Math.max(2, parseInt(document.getElementById('s_autoDelay').value) || 3),
+    windowOpacity: parseInt(document.getElementById('s_opacity').value),
+    windowPosition: selectedPos,
+    deepgramApiKey: document.getElementById('s_deepgramKey').value.trim(),
+    contentProtection: document.getElementById('s_contentProtection').checked
+  };
+  // Clipboard settings
+  settings.clipboardSettings = {
+    enabled: document.getElementById('s_clipboardEnabled').checked,
+    autoAnswer: document.getElementById('s_clipboardAutoAnswer').checked,
+    historyEnabled: document.getElementById('s_clipboardHistory').checked,
+    autoCopyAnswer: document.getElementById('s_clipboardAutoCopy').checked,
+    cooldownSeconds: Math.max(0, parseInt(document.getElementById('s_clipboardCooldown').value) || 2),
+    maxSize: Math.max(64, parseInt(document.getElementById('s_clipboardMaxSize').value) || 10000),
+    detectionSensitivity: document.getElementById('s_clipboardSensitivity').value
+  };
+  await window.electronAPI.saveSettings(settings);
+  // Also trigger live toggle
+  await window.electronAPI.setProtection(settings.contentProtection);
+  const msg = document.getElementById('saveMsg');
+  msg.textContent = '✓ Settings saved';
+  setTimeout(() => { msg.textContent = ''; }, 2000);
+}
+
+async function init() {
+  if (window.electronAPI.getAIModels) {
+    modelCatalog = await window.electronAPI.getAIModels();
+  }
+
+  const s = await window.electronAPI.getSettings();
+  if (s.groqApiKey) {
+    document.getElementById('s_apiKey').value = s.groqApiKey;
+    document.getElementById('keyStatus').style.display = 'flex';
+    document.getElementById('keyStatus').className = 'key-status valid';
+    document.getElementById('keyStatus').innerHTML = '<div class="key-dot valid"></div> API key is set';
+  }
+  populateAllModelSelects(s);
+  document.getElementById('s_autoAnswer').checked = s.autoAnswer;
+  document.getElementById('s_autoDelay').value = Math.max(2, s.autoAnswerDelay || 3);
+  document.getElementById('s_opacity').value = s.windowOpacity;
+  document.getElementById('s_opacityVal').textContent = s.windowOpacity + '%';
+  selectedPos = s.windowPosition;
+  document.getElementById('s_deepgramKey').value = s.deepgramApiKey || '';
+  document.getElementById('s_contentProtection').checked = !!s.contentProtection;
+
+  // Clipboard settings
+  const cb = s.clipboardSettings || {};
+  document.getElementById('s_clipboardEnabled').checked = cb.enabled !== false;
+  document.getElementById('s_clipboardAutoAnswer').checked = cb.autoAnswer !== false;
+  document.getElementById('s_clipboardHistory').checked = cb.historyEnabled !== false;
+  document.getElementById('s_clipboardAutoCopy').checked = cb.autoCopyAnswer === true;
+  document.getElementById('s_clipboardCooldown').value = cb.cooldownSeconds || 2;
+  document.getElementById('s_clipboardMaxSize').value = cb.maxSize || 10000;
+  document.getElementById('s_clipboardSensitivity').value = cb.detectionSensitivity || 'medium';
+
+  document.querySelectorAll('.pos-option').forEach(o => {
+    o.classList.toggle('active', o.dataset.pos === selectedPos);
+  });
+
+  if (window.electronAPI.getAIMetrics) {
+    aiMetrics = await window.electronAPI.getAIMetrics();
+    renderAIMetrics();
+  }
+
+  if (window.electronAPI.onAIModelsUpdated) {
+    window.electronAPI.onAIModelsUpdated(async catalog => {
+      modelCatalog = catalog;
+      const settings = await window.electronAPI.getSettings();
+      populateAllModelSelects(settings);
+    });
+  }
+
+  if (window.electronAPI.onAIMetric) {
+    window.electronAPI.onAIMetric(metric => {
+      aiMetrics.unshift(metric);
+      aiMetrics = aiMetrics.slice(0, 100);
+      renderAIMetrics();
+    });
+  }
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+node_modules/
+dist/
+dist-build/
+*.log
+.env
+.env.*
+*.pem
+*.p12
+*.key
+*.crt_
+coverage/
+.DS_Store
+Thumbs.db
+api keys.txt
+.env
+.env.local
+API keys
+resume
+JD 
+Sessions
+KBD
+node_modules
+dist/
+release/
+*.exe
+logs/
+New folder
+# Dependencies
+node_modules/
+
+# Build / Distribution
+dist/
+dist-build/
+release/
+*.exe
+
+# Environment / Secrets
+.env
+.env.*
+!.env.example
+
+# API keys / Credentials
+api_keys.txt
+API_keys.txt
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# User / Personal Data
+JD/
+KBD/
+resume/
+Sessions/
+New folder/
+data_set/
+
+# Local config / generated data
+config.json
+
+# IDE
+.vscode/

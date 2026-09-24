@@ -1,0 +1,109 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: var(--font-family);
+  cursor: default !important;
+}
+
+input, textarea, select {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text !important;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: transparent;
+  overflow: hidden;        /* body never scrolls — only inner content areas do */
+  height: 100%;
+  width: 100%;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  color: var(--color-text);
+  font-family: var(--font-family);
+}
+
+/* ── Viewport-filling screen helper ── */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;         /* each screen is also clipped */
+}
+
+.screen.active {
+  display: flex;
+}
+
+/* ── Smooth scrolling only inside scrollable content areas ── */
+.scroll-area,
+.tab-panel,
+.ai-content,
+.teleprompter-viewport,
+.s-body,
+.content {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Thin, subtle scrollbars */
+.scroll-area::-webkit-scrollbar,
+.tab-panel::-webkit-scrollbar,
+.ai-content::-webkit-scrollbar,
+.teleprompter-viewport::-webkit-scrollbar,
+.s-body::-webkit-scrollbar,
+.content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scroll-area::-webkit-scrollbar-track,
+.tab-panel::-webkit-scrollbar-track,
+.ai-content::-webkit-scrollbar-track,
+.s-body::-webkit-scrollbar-track,
+.content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-area::-webkit-scrollbar-thumb,
+.tab-panel::-webkit-scrollbar-thumb,
+.ai-content::-webkit-scrollbar-thumb,
+.s-body::-webkit-scrollbar-thumb,
+.content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+.teleprompter-viewport::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 4px;
+}
+
+/* ── Spinner ── */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+.spinner-lg {
+  width: 32px;
+  height: 32px;
+  border-width: 3px;
+  margin: 0 auto 12px;
+  display: block;
+}

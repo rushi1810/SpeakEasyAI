@@ -1,0 +1,116 @@
+{
+  "name": "speakeasy-ai",
+  "productName": "SpeakEasy AI",
+  "version": "1.0.0",
+  "description": "AI-powered local interview assistant",
+  "author": "SpeakEasy AI",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "concurrently \"npm run build:watch\" \"npm run electron:dev\"",
+    "build": "webpack --mode production",
+    "build:watch": "webpack --mode development --watch",
+    "electron:dev": "wait-on dist/main.js && set \"ELECTRON_RUN_AS_NODE=\" && electron .",
+    "start": "npm run build && set \"ELECTRON_RUN_AS_NODE=\" && electron .",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder --win --x64",
+    "dist:win": "npm run build && electron-builder --win --x64"
+  },
+  "dependencies": {
+    "bufferutil": "^4.1.0",
+    "electron-store": "^8.1.0",
+    "fs-extra": "^11.3.4",
+    "github-syntax-dark": "^0.5.0",
+    "groq-sdk": "^0.9.0",
+    "mammoth": "^1.12.0",
+    "pdf-parse": "^2.4.5",
+    "utf-8-validate": "^6.0.6",
+    "uuid": "^9.0.1",
+    "ws": "^8.21.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.0",
+    "@types/ws": "^8.18.1",
+    "concurrently": "^10.0.4",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.13.3",
+    "ts-loader": "^9.0.0",
+    "typescript": "^5.0.0",
+    "wait-on": "^9.1.0",
+    "webpack": "^5.109.2",
+    "webpack-cli": "^5.0.0"
+  },
+  "build": {
+    "appId": "com.speakeasyai.desktop",
+    "productName": "SpeakEasy AI",
+    "executableName": "SpeakEasyAI",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "extraResources": [
+      {
+        "from": "data_set",
+        "to": "data_set"
+      }
+    ],
+    "asar": true,
+    "compression": "maximum",
+    "npmRebuild": false,
+    "extraMetadata": {
+      "main": "dist/main.js"
+    },
+    "win": {
+      "icon": "icon.ico",
+      "publisherName": "SpeakEasy AI",
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "artifactName": "SpeakEasy-AI-Setup-${version}.exe",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "SpeakEasy AI",
+      "installerIcon": "icon.ico",
+      "uninstallerIcon": "icon.ico",
+      "uninstallDisplayName": "SpeakEasy AI",
+      "deleteAppDataOnUninstall": false,
+      "license": "",
+      "include": "build/installer.nsh"
+    },
+    "files": [
+      "dist/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "package.json",
+      "!**/*.map",
+      "!**/*.ts",
+      "!**/*.tsx",
+      "!**/*.log",
+      "!src{,/**}",
+      "!dist/**/*.map",
+      "!coverage{,/**}",
+      "!README.md",
+      "!tsconfig.json",
+      "!webpack.config.js",
+      "!resume{,/**}",
+      "!JD{,/**}",
+      "!KBD{,/**}",
+      "!node_modules/.bin",
+      "!node_modules/**/{test,tests,__tests__,powered-test,example,examples,docs,doc,benchmark,benchmarks,website,.github}/**",
+      "!node_modules/**/*.d.ts",
+      "!**/*.{md,markdown}",
+      "!**/.env*",
+      "!**/*.pem"
+    ]
+  }
+}

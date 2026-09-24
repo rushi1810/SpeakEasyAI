@@ -1,0 +1,1067 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speakeasy AI</title>
+  <link rel="stylesheet" href="styles/variables.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <style>
+    /* ═══ LAYOUT FOUNDATION ═══ */
+
+    /* Card — fills the screen, flex column, no overflow */
+    .card {
+      background: var(--color-bg);
+      border-radius: var(--radius-xl);
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* ── Header (shared) ── */
+    .card-header {
+      background: white;
+      border-bottom: 1px solid var(--color-border);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      -webkit-app-region: drag !important;
+    }
+    .card-header > .header-left,
+    .card-header > .header-left > * {
+      -webkit-app-region: drag !important;
+    }
+    .card-header > .header-right,
+    .card-header > .header-right *,
+    .card-header button,
+    .card-header button * {
+      -webkit-app-region: no-drag !important;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 8px; }
+
+    .app-logo {
+      width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent; border-radius: 999px;
+      flex-shrink: 0; overflow: hidden;
+    }
+    .brand-logo-image {
+      display: block; width: 100%; height: 100%;
+      object-fit: contain; border-radius: 50%;
+      filter: drop-shadow(0 2px 6px rgba(15,23,42,0.12));
+    }
+    .app-name { font-weight: 700; font-size: 14px; color: var(--color-text); letter-spacing: -0.03em; }
+
+    .header-right { display: flex; align-items: center; gap: 4px; }
+
+    .icon-btn {
+      background: none; border: none; color: #718096;
+      padding: 5px 6px; border-radius: var(--radius-sm);
+      transition: var(--transition);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; line-height: 1;
+    }
+    .icon-btn:hover { background: #f7fafc; color: #2d3748; }
+    .icon-btn.danger { color: #dc2626; }
+    .icon-btn.danger:hover { background: #fef2f2; color: #991b1b; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      background: white;
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .tab-btn {
+      flex: 1; padding: 8px 4px; text-align: center;
+      background: none; border: none; font-size: 12px; font-weight: 500;
+      color: var(--color-text-secondary);
+      border-bottom: 2px solid transparent;
+      transition: var(--transition);
+    }
+    .tab-btn.active { color: var(--color-text); border-bottom-color: var(--color-primary); }
+
+    /* Tab panel — scrollable content area, fills remaining height */
+    .tab-panel {
+      display: none; flex: 1;
+      overflow-y: auto; overflow-x: hidden;
+      padding: 12px 14px;
+      scroll-behavior: smooth;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tab-panel.active { display: block; }
+    .tab-panel::-webkit-scrollbar { width: 4px; }
+    .tab-panel::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 4px; }
+
+    /* ── Setup screen body wrapper ── */
+    #setupScreen .card-body {
+      flex: 1; overflow-y: auto; padding: 14px;
+    }
+
+    /* ── Setup logo ── */
+    .setup-logo-area { text-align: center; padding: 6px 0 12px; }
+    .setup-logo {
+      width: 52px; height: 52px; background: var(--color-primary);
+      border-radius: 14px; display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 700; font-size: 22px; margin: 0 auto 10px;
+    }
+    .setup-title { font-size: 16px; font-weight: 700; color: var(--color-text); letter-spacing: -0.03em; }
+    .setup-subtitle { font-size: 12px; color: var(--color-text-secondary); margin-top: 4px; }
+
+    /* ── API Key ── */
+    .api-key-section {
+      background: white; border-radius: var(--radius-md);
+      padding: 12px; margin-bottom: 12px;
+      border: 1px solid var(--color-border);
+    }
+    .api-key-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .api-key-label { font-size: 12px; font-weight: 600; color: var(--color-text); }
+    .api-key-status { font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 10px; }
+    .api-key-status.valid    { background: #dcfce7; color: #166534; }
+    .api-key-status.invalid  { background: #fee2e2; color: #991b1b; }
+    .api-key-status.checking { background: #fef3c7; color: #92400e; }
+
+    .api-key-input-row { display: flex; gap: 8px; }
+    .api-key-input {
+      flex: 1; padding: 7px 10px;
+      border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+      font-size: 12px; font-family: var(--font-family-mono);
+      color: var(--color-text); transition: var(--transition);
+    }
+    .api-key-input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(44,62,80,0.1); }
+
+    .btn-verify {
+      padding: 7px 12px; background: var(--color-primary); color: white;
+      border: none; border-radius: var(--radius-sm);
+      font-size: 12px; font-weight: 500; transition: var(--transition);
+    }
+    .btn-verify:hover { background: var(--color-primary-hover); }
+
+    .api-key-hint { font-size: 11px; color: var(--color-text-tertiary); margin-top: 5px; }
+    .api-key-hint a { color: var(--color-primary); text-decoration: none; }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 10px; }
+    .form-row { display: flex; gap: 8px; }
+    .form-row .form-group { flex: 1; }
+    .form-label { display: block; font-size: 11px; font-weight: 500; color: var(--color-text); margin-bottom: 4px; }
+    .form-input {
+      width: 100%; padding: 7px 10px;
+      border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+      font-size: 12px; color: var(--color-text); background: white;
+      transition: var(--transition);
+    }
+    .form-input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(44,62,80,0.1); }
+    textarea.form-input { resize: vertical; min-height: 52px; line-height: 1.5; }
+    .form-section-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--color-text-tertiary);
+      margin-bottom: 8px; margin-top: 2px;
+    }
+
+    /* ── Start button ── */
+    .btn-start {
+      width: 100%; padding: 9px;
+      background: var(--color-primary); color: white;
+      border: none; border-radius: var(--radius-md);
+      font-size: 13px; font-weight: 600; transition: var(--transition);
+      margin-top: 4px; letter-spacing: -0.02em;
+    }
+    .btn-start:hover { background: var(--color-primary-hover); }
+    .btn-start:disabled { opacity: 0.5; cursor: not-allowed !important; }
+
+    /* ── Session items ── */
+    .session-item {
+      background: white; border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      padding: 9px 11px; margin-bottom: 7px; transition: var(--transition);
+    }
+    .session-item:hover { border-color: var(--color-border-dark); }
+    .session-company { font-size: 12px; font-weight: 600; color: var(--color-text); }
+    .session-meta { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; }
+    .no-sessions { text-align: center; color: var(--color-text-tertiary); padding: 28px 0; font-size: 12px; }
+
+    /* ═══ INTERVIEW OVERLAY ═══ */
+    #interviewScreen { background: transparent; gap: 5px; }
+
+    .interview-bar {
+      width: auto; min-width: 520px; max-width: 1000px;
+      display: flex; flex-direction: column; gap: 5px; flex-shrink: 0;
+    }
+
+    .interview-top-card,
+    .interview-transcript-card {
+      border-radius: 14px; overflow: hidden;
+      border: 1px solid var(--int-border);
+      transition: all 0.2s ease;
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    }
+    .interview-top-card {
+      background: var(--int-bg);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      -webkit-app-region: drag !important;
+    }
+    .interview-top-card,
+    .interview-top-card .interview-header,
+    .interview-top-card .int-logo,
+    .interview-top-card .int-brand {
+      -webkit-app-region: drag !important;
+    }
+    .interview-top-card button,
+    .interview-top-card button *,
+    .interview-top-card input,
+    .interview-top-card input *,
+    .interview-top-card select,
+    .interview-top-card select *,
+    .interview-top-card textarea,
+    .interview-top-card textarea * {
+      -webkit-app-region: no-drag;
+    }
+    .interview-transcript-card {
+      display: flex; align-items: center;
+      background:
+        radial-gradient(circle at left center, rgba(74,222,128,0.08), transparent 26%),
+        linear-gradient(180deg, rgba(10,14,20,0.94), rgba(7,10,15,0.96));
+      box-shadow: 0 8px 28px rgba(0,0,0,0.34);
+      -webkit-app-region: drag !important;
+    }
+    .interview-transcript-card,
+    .interview-transcript-card .transcript-bar,
+    .interview-transcript-card .transcript-text {
+      -webkit-app-region: drag !important;
+    }
+
+    .interview-header {
+      display: flex; align-items: center;
+      padding: 0 8px; height: 46px; gap: 5px;
+      overflow-x: auto; overflow-y: hidden;
+      scrollbar-width: none;
+    }
+    .interview-header::-webkit-scrollbar { display: none; }
+
+    .int-logo {
+      width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+      background: transparent; border-radius: 999px; flex-shrink: 0; overflow: hidden;
+    }
+    .int-brand { font-weight: 700; font-size: 12px; color: var(--int-text); letter-spacing: -0.02em; flex-shrink: 0; }
+
+    .int-btn {
+      display: flex; align-items: center; gap: 4px;
+      background: var(--int-element); border: 1px solid var(--int-border);
+      color: var(--int-text); padding: 4px 8px; border-radius: 7px;
+      font-size: 11px; font-weight: 500; transition: var(--transition);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .int-btn:hover { background: var(--int-element-hover); }
+    .int-btn.active { background: rgba(200,137,74,0.25); border-color: rgba(200,137,74,0.5); color: #f4b06a; }
+    .int-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+    .int-icon-btn {
+      width: 28px; height: 28px; background: var(--int-element);
+      border: 1px solid var(--int-border); color: var(--int-text-secondary);
+      border-radius: 7px; display: flex; align-items: center; justify-content: center;
+      transition: var(--transition); flex-shrink: 0;
+    }
+    .int-icon-btn:hover { background: var(--int-element-hover); color: var(--int-text); }
+    .int-icon-btn.active { background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.3); color: #4ade80; }
+    .int-icon-btn.active.mic { animation: pulse 2s infinite; }
+    .int-icon-btn.active.click-through { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.3); color: #f87171; }
+    .int-icon-btn svg { width: 13px; height: 13px; }
+
+    .kb-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 8px; font-size: 11px;
+      background: rgba(255,255,255,0.05); border-radius: 4px; margin-bottom: 2px;
+    }
+    .kb-item:last-child { margin-bottom: 0; }
+    .kb-remove { color: #f87171; cursor: pointer; opacity: 0.6; }
+    .kb-remove:hover { opacity: 1; }
+
+    .kb-question-section {
+      margin-top: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .kb-question-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin-bottom: 8px;
+    }
+    .kb-question-label {
+      font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.75);
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .kb-question-list {
+      display: flex; flex-direction: column; gap: 6px;
+      max-height: 180px; overflow-y: auto; margin-bottom: 8px;
+    }
+    .kb-question-item {
+      width: 100%; text-align: left; border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.82);
+      border-radius: 6px; padding: 7px 8px; font-size: 11px; line-height: 1.4;
+      cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .kb-question-item:hover, .kb-question-item.active {
+      background: rgba(125, 211, 252, 0.08); border-color: rgba(125, 211, 252, 0.32);
+      color: #fff;
+    }
+    .kb-question-empty, .kb-question-loading, .kb-question-error {
+      font-size: 11px; padding: 8px 4px; color: rgba(255,255,255,0.5);
+    }
+    .kb-question-error { color: #fca5a5; }
+    .kb-answer-panel {
+      border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px;
+      white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.6;
+      color: rgba(255,255,255,0.82);
+      min-height: 72px;
+    }
+    .kb-answer-panel.placeholder { color: rgba(255,255,255,0.42); }
+
+    .auto-toggle-wrap {
+      display: flex; align-items: center; gap: 4px;
+      padding: 4px 6px; background: var(--int-element);
+      border: 1px solid var(--int-border); border-radius: 7px; flex-shrink: 0;
+    }
+    .auto-label { font-size: 11px; color: var(--int-text-secondary); font-weight: 500; }
+
+    .toggle-switch { position: relative; width: 28px; height: 16px; cursor: pointer; }
+    .toggle-switch input { display: none; }
+    .toggle-track { position: absolute; inset: 0; background: rgba(255,255,255,0.15); border-radius: 8px; transition: var(--transition); }
+    .toggle-thumb { position: absolute; width: 12px; height: 12px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: var(--transition); }
+    .toggle-switch input:checked~.toggle-track { background: #22c55e; }
+    .toggle-switch input:checked~.toggle-thumb { left: 14px; }
+
+    .spacer { flex: 1; min-width: 0; }
+
+    .session-timer {
+      font-family: var(--font-family-mono); font-size: 12px; font-weight: 600;
+      color: var(--int-text-secondary); letter-spacing: 0.02em; min-width: 40px; text-align: right;
+    }
+    .stop-btn {
+      width: 24px; height: 24px;
+      background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 6px; display: flex; align-items: center; justify-content: center;
+      color: #f87171; transition: var(--transition); flex-shrink: 0;
+    }
+    .stop-btn:hover { background: rgba(239,68,68,0.25); }
+    .stop-btn svg { width: 10px; height: 10px; }
+
+    /* Transcript bar */
+    .transcript-bar { display: flex; align-items: center; width: 100%; padding: 9px 12px; gap: 8px; min-height: 38px; }
+    .transcript-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: #4ade80; }
+    .transcript-dot.connecting { background: #fbbf24; animation: pulse 1s infinite; }
+    .transcript-dot.idle { background: rgba(255,255,255,0.2); }
+    .transcript-text { flex: 1; font-size: 11px; color: var(--int-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    #btnTeleprompter.active { background: rgba(125,211,252,0.16); border-color: rgba(125,211,252,0.34); color: #bae6fd; }
+
+    /* ── Teleprompter ── */
+    #teleprompterContainer {
+      display: none; flex-direction: column;
+      width: auto; min-width: 520px; max-width: 1000px;
+      background: linear-gradient(180deg, rgba(12,18,26,0.98), rgba(8,11,18,0.98));
+      border: 1px solid rgba(148,163,184,0.18); border-radius: 14px; overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+      backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+      animation: slideDown 0.3s cubic-bezier(0.16,1,0.3,1);
+    }
+    #teleprompterContainer.visible { display: flex; }
+
+    .teleprompter-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 7px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04); flex-shrink: 0;
+    }
+    .teleprompter-meta { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .teleprompter-status { font-size: 11px; color: rgba(255,255,255,0.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .teleprompter-stage {
+      padding: 14px 16px 16px;
+      background:
+        radial-gradient(circle at top center, rgba(125,211,252,0.12), transparent 45%),
+        linear-gradient(180deg, rgba(9,14,24,0.95), rgba(6,10,17,0.98));
+    }
+    .teleprompter-question {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: rgba(186,230,253,0.76); margin-bottom: 8px; text-align: center;
+    }
+    .teleprompter-viewport {
+      max-height: 160px; overflow-y: auto;
+      padding: 12px 18px; border-radius: 12px;
+      border: 1px solid rgba(148,163,184,0.14);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -18px 24px rgba(0,0,0,0.22);
+      scroll-behavior: smooth;
+    }
+    .teleprompter-viewport::-webkit-scrollbar { width: 4px; }
+    .teleprompter-viewport::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.38); border-radius: 999px; }
+    .teleprompter-content { color: rgba(255,255,255,0.96); font-size: 24px; line-height: 1.55; font-weight: 600; letter-spacing: -0.02em; text-align: center; text-wrap: pretty; }
+    .teleprompter-content p { margin: 0 0 14px; }
+    .teleprompter-content p:last-child { margin-bottom: 0; }
+    .teleprompter-empty { font-size: 16px; font-weight: 500; color: rgba(255,255,255,0.48); }
+    .teleprompter-tip { margin-top: 8px; text-align: center; font-size: 11px; color: rgba(255,255,255,0.38); letter-spacing: 0.01em; }
+
+    /* ── Collapsed logo ── */
+    #collapsedLogo {
+      display: none; width: 52px; height: 52px;
+      background: transparent; border-radius: 50%;
+      align-items: center; justify-content: center; cursor: pointer;
+      box-shadow: 0 12px 30px rgba(15,23,42,0.2);
+      position: absolute; inset: 0; overflow: hidden;
+    }
+    .collapsed-logo-image { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; filter: drop-shadow(0 6px 14px rgba(15,23,42,0.18)); }
+    #collapsedLogo.visible { display: flex; }
+
+    /* ── AI Panel (inline in index.html) ── */
+    #aiPanelContainer {
+      display: none; flex-direction: column;
+      width: auto; min-width: 520px; max-width: 1000px;
+      background:
+        radial-gradient(circle at top right, rgba(251,146,60,0.1), transparent 34%),
+        linear-gradient(180deg, rgba(13,13,13,0.96), rgba(8,11,17,0.98));
+      border: 1px solid var(--int-border); border-radius: 14px;
+      overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+      flex: 1; min-height: 160px;
+      animation: slideDown 0.3s cubic-bezier(0.16,1,0.3,1);
+    }
+    #aiPanelContainer.visible { display: flex; }
+
+    /* ── Transcript box ── */
+    #transcriptBoxContainer {
+      display: none; flex-direction: column;
+      width: auto; min-width: 520px; max-width: 1000px;
+      background:
+        radial-gradient(circle at top left, rgba(125,211,252,0.1), transparent 36%),
+        linear-gradient(180deg, rgba(13,13,13,0.96), rgba(8,11,17,0.98));
+      border: 1px solid var(--int-border); border-radius: 14px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+      flex: 1; min-height: 120px; max-height: 260px;
+      overflow: hidden;
+      animation: slideDown 0.3s cubic-bezier(0.16,1,0.3,1);
+    }
+    #transcriptBoxContainer.visible { display: flex; }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .ai-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03); flex-shrink: 0;
+    }
+    .ai-toolbar-title { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .ai-content {
+      flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+      padding: 12px 14px;
+      color: rgba(255,255,255,0.9);
+      scroll-behavior: smooth; overscroll-behavior: contain;
+      user-select: text; -webkit-user-select: text;
+    }
+    .ai-content::-webkit-scrollbar { width: 4px; }
+    .ai-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    .ai-kbd-strip {
+      margin: 0 12px 8px;
+      padding: 8px 10px 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 9px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      max-height: 150px;
+      transition: max-height 0.3s ease;
+      overflow: hidden;
+    }
+    .ai-kbd-strip.expanded {
+      max-height: 400px;
+    }
+    .ai-kbd-strip .kb-question-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+    .ai-kbd-strip .kb-question-label {
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.55);
+      text-transform: uppercase;
+    }
+    .kbd-expand-btn {
+      background: none; border: none; color: rgba(255,255,255,0.5);
+      font-size: 11px; padding: 2px 4px; cursor: pointer; transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .kbd-expand-btn:hover { color: rgba(255,255,255,0.8); }
+    .kbd-search-input-wrap {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 7px 9px;
+      min-height: 34px;
+      flex-shrink: 0;
+    }
+    .kbd-search-icon {
+      width: 12px; height: 12px; color: rgba(255,255,255,0.5); flex-shrink: 0;
+    }
+    .kbd-search-input {
+      flex: 1; background: transparent; border: none; color: white; font-size: 12px; outline: none;
+      min-width: 0;
+    }
+    .kbd-search-input::placeholder { color: rgba(255,255,255,0.45); }
+    .ai-kbd-strip .kb-question-list {
+      display: flex; flex-direction: column; gap: 6px;
+      min-height: 0;
+      flex: 1;
+      overflow-y: auto;
+      margin-top: 8px;
+      padding-right: 4px;
+    }
+    .ai-kbd-strip .kb-question-item {
+      width: 100%;
+      padding: 7px 9px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.8);
+      font-size: 11px;
+      line-height: 1.45;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      flex-shrink: 0;
+    }
+    .ai-kbd-strip .kb-question-item:hover,
+    .ai-kbd-strip .kb-question-item.active {
+      background: rgba(125, 211, 252, 0.08);
+      border-color: rgba(125, 211, 252, 0.32);
+      color: #fff;
+    }
+    .ai-kbd-strip .kb-question-empty,
+    .ai-kbd-strip .kb-question-loading,
+    .ai-kbd-strip .kb-question-error,
+    .ai-kbd-strip .kb-question-more {
+      font-size: 10px;
+      padding: 5px 4px;
+      color: rgba(255,255,255,0.55);
+      flex-shrink: 0;
+    }
+    .ai-kbd-strip .kb-question-error { color: #fca5a5; }
+    .ai-kbd-strip .kb-question-more { 
+      border-top: 1px solid rgba(255,255,255,0.06); 
+      margin-top: 4px;
+      text-align: center;
+      padding: 6px 4px;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .ai-kbd-strip .kb-question-more:hover { color: rgba(255,255,255,0.8); }
+    .ai-chat-bar {
+      display: none;
+    }
+    .ai-chat-input {
+      flex: 1; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+      padding: 7px 10px; color: white; font-size: 12px; outline: none;
+    }
+    .ai-chat-input:focus { border-color: var(--color-primary); background: rgba(255,255,255,0.1); }
+
+    /* Q&A */
+    .qa-container { display: flex; flex-direction: column; gap: 14px; padding: 2px; }
+    .qa-question-card {
+      background: linear-gradient(145deg, rgba(44,62,80,0.6), rgba(44,62,80,0.2));
+      border: 1px solid rgba(125,211,252,0.15); border-radius: 10px;
+      padding: 12px; position: relative;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      user-select: text; -webkit-user-select: text; cursor: text !important;
+    }
+    .qa-q-header { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+    .qa-q-icon { font-size: 14px; }
+    .qa-q-label { font-size: 10px; font-weight: 700; color: #7dd3fc; letter-spacing: 1.2px; text-transform: uppercase; }
+    .qa-q-text { font-size: 14px; font-weight: 600; color: #fff; line-height: 1.5; margin-right: 90px; }
+    .qa-copy-btn {
+      position: absolute; top: 12px; right: 12px;
+      display: flex; align-items: center;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.8); padding: 5px 9px;
+      border-radius: 7px; font-size: 11px; font-weight: 600; cursor: pointer; transition: 0.2s;
+    }
+    .qa-copy-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+    .qa-answer-card { background: transparent; border: 0; border-radius: 0; padding: 0; box-shadow: none; user-select: text; -webkit-user-select: text; cursor: text !important; }
+    .qa-question-card *, .qa-answer-card * { user-select: text; -webkit-user-select: text; cursor: text !important; }
+
+    .qa-h1 { font-size: 15px; font-weight: 700; color: #fff; margin: 14px 0 6px; }
+    .qa-h2 { font-size: 14px; font-weight: 600; color: #fff; margin: 12px 0 6px; }
+    .qa-h3 { font-size: 13px; font-weight: 600; color: #fff; margin: 12px 0 6px; }
+    .qa-p { font-size: 13px; line-height: 1.6; margin-bottom: 10px; color: rgba(255,255,255,0.85); }
+    .qa-list { padding-left: 18px; margin-bottom: 12px; list-style: disc; }
+    .qa-list-ordered { list-style: decimal; }
+    .qa-list li { font-size: 13px; margin-bottom: 6px; line-height: 1.5; color: rgba(255,255,255,0.85); display: list-item; }
+    .qa-inline-code { background: rgba(125,211,252,0.15); padding: 2px 5px; border-radius: 4px; font-family: 'Consolas',monospace; font-size: 12px; color: #bae6fd; }
+    .qa-divider { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 18px 0; }
+    .qa-quote { border-left: 3px solid #7dd3fc; color: rgba(255,255,255,0.7); font-style: italic; margin-bottom: 12px; background: rgba(125,211,252,0.05); border-radius: 0 8px 8px 0; padding: 10px 14px; }
+
+    .ai-content pre { background: #000; border-radius: 8px; padding: 10px; margin: 10px 0; overflow-x: auto; position: relative; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .ai-content pre code { background: none; color: #e2e8f0; font-size: 12px; }
+
+    .ai-loading-state { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,0.5); font-size: 12px; padding: 16px 0; }
+    .ai-spinner-small { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.1); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+
+    .nav-controls { display: flex; align-items: center; gap: 6px; }
+    .nav-page-info { font-size: 11px; color: rgba(255,255,255,0.4); min-width: 36px; text-align: center; }
+    .nav-btn-mini { background: none; border: none; color: rgba(255,255,255,0.4); padding: 2px 4px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+    .nav-btn-mini:hover:not(:disabled) { color: white; background: rgba(255,255,255,0.1); }
+    .nav-btn-mini:disabled { opacity: 0.2; cursor: not-allowed; }
+
+    .panel-copy-btn { position: absolute; top: 6px; right: 6px; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.1); border: none; color: rgba(255,255,255,0.5); border-radius: 4px; }
+    .panel-copy-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+    .qa-copy-btn *, .panel-copy-btn * { user-select: none; -webkit-user-select: none; cursor: pointer !important; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+      background: #2d3748; color: white; padding: 7px 14px; border-radius: 8px;
+      font-size: 12px; font-weight: 500; opacity: 0; transition: opacity 0.2s;
+      pointer-events: none; z-index: 9999; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ── Layout Toggle Button ── */
+    .btn-layout-toggle {
+      background: none; border: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+      padding: 4px 6px; border-radius: var(--radius-sm);
+      transition: var(--transition);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; line-height: 1;
+    }
+    .btn-layout-toggle:hover { background: #f0f4f8; color: var(--color-primary); border-color: var(--color-border-dark); }
+    .int-icon-btn.btn-layout-toggle { border: 1px solid var(--int-border); background: var(--int-element); color: var(--int-text-secondary); }
+    .int-icon-btn.btn-layout-toggle:hover { background: var(--int-element-hover); color: var(--int-text); }
+
+    /* ── Portrait body class (toggled via JS) ── */
+    body.layout-portrait .interview-bar,
+    body.layout-portrait #teleprompterContainer,
+    body.layout-portrait #aiPanelContainer,
+    body.layout-portrait #transcriptBoxContainer { min-width: 0 !important; max-width: 420px !important; width: 420px !important; }
+    body.layout-portrait .int-brand { display: none; }
+    body.layout-portrait .form-row { flex-direction: column; gap: 0; }
+
+    /* ── Responsive media queries ── */
+    @media (max-width: 500px) {
+      .interview-bar, #teleprompterContainer, #aiPanelContainer, #transcriptBoxContainer {
+        min-width: 0 !important; max-width: 100% !important; width: 100% !important;
+      }
+      .int-brand { display: none; }
+      .form-row { flex-direction: column; gap: 0; }
+      .teleprompter-content { font-size: 18px; }
+    }
+
+    @media (orientation: landscape) and (max-height: 520px) {
+      .teleprompter-viewport { max-height: 90px; }
+      .teleprompter-content { font-size: 16px; }
+      .interview-header { height: 40px; }
+      .ai-content { padding: 8px 10px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ═══ SETUP / DASHBOARD SCREEN ═══ -->
+  <div id="setupScreen" class="screen active">
+    <div class="card">
+      <div class="card-header">
+        <div class="header-left">
+          <div class="app-logo"><img src="../assets/logo.png" alt="SpeakEasyAI" class="brand-logo-image"></div>
+          <span class="app-name">Speakeasy AI</span>
+        </div>
+        <div class="header-right">
+          <button class="icon-btn" onclick="collapseApp()" title="Minimize to Logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <button class="icon-btn btn-layout-toggle" onclick="toggleLayout()" title="Switch to Portrait">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><rect x="7" y="2" width="10" height="20" rx="2"/><line x1="7" y1="6" x2="17" y2="6"/></svg>
+          </button>
+          <button class="icon-btn" onclick="openSettings()" title="Settings">⚙</button>
+          <button class="icon-btn danger" onclick="closeApp()" title="Close">✕</button>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab('start')" id="tabStart">Start Session</button>
+          <button class="tab-btn" onclick="switchTab('sessions')" id="tabSessions">Past Sessions</button>
+        </div>
+
+        <!-- Start Tab -->
+        <div class="tab-panel active" id="panelStart" style="padding:16px;">
+
+          <!-- API Key section -->
+          <div class="api-key-section">
+            <div class="api-key-header">
+              <span class="api-key-label">Groq API Key</span>
+              <span class="api-key-status" id="apiKeyStatus">Not set</span>
+            </div>
+            <div class="api-key-input-row">
+              <input type="password" class="api-key-input" id="apiKeyInput" placeholder="gsk_..." autocomplete="off"
+                oninput="onApiKeyInput()">
+              <button class="btn-verify" id="btnVerify" onclick="verifyApiKey()">Verify</button>
+            </div>
+            </p>
+          </div>
+          <!-- Job Profile -->
+          <p class="form-section-label">Target Profile</p>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Company</label>
+              <input type="text" class="form-input" id="companyInput" placeholder="e.g. Google">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Position</label>
+              <input type="text" class="form-input" id="positionInput" placeholder="e.g. Software Engineer">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Job Description (JD)</label>
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+              <input type="file" id="jdFileInput" style="display:none" onchange="uploadJD(this.files)"
+                accept=".pdf,.doc,.docx,.txt,.md,.markdown,.jpg,.jpeg,.png,.jfif,.webp,.bmp">
+              <button class="int-btn secondary" onclick="document.getElementById('jdFileInput').click()"
+                style="padding:6px 12px;font-size:12px">Upload JD File</button>
+              <div id="jdStatus" style="font-size:11px;color:rgba(255,255,255,0.4);display:flex;align-items:center">No
+                JD selected</div>
+            </div>
+            <textarea class="form-input" id="jdInput" placeholder="Paste JD text here or upload file..."
+              style="height:64px;font-size:12px" onchange="updateJDFromText(this.value)"></textarea>
+          </div>
+
+          <!-- Resume -->
+          <p class="form-section-label">Your Background</p>
+          <div class="form-group">
+            <label class="form-label">Resume (PDF/DOC/TXT)</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="file" id="resumeFileInput" style="display:none" onchange="uploadResume(this.files)"
+                accept=".pdf,.doc,.docx,.txt,.md,.markdown,.jpg,.jpeg,.png,.jfif,.webp,.bmp">
+              <button class="int-btn secondary" onclick="document.getElementById('resumeFileInput').click()"
+                style="padding:6px 12px;font-size:12px">Select Resume</button>
+              <div id="resumeStatus" style="font-size:12px;color:var(--color-primary)">No resume uploaded</div>
+            </div>
+          </div>
+
+          <!-- Knowledge Base -->
+          <p class="form-section-label">Knowledge Base (Depth Context)</p>
+          <div class="form-group">
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+              <input type="file" id="kbFileInput" style="display:none" multiple onchange="uploadKB(this.files)"
+                accept=".pdf,.doc,.docx,.txt,.md,.markdown,.jpg,.jpeg,.png,.jfif,.webp,.bmp">
+              <button class="int-btn secondary" onclick="document.getElementById('kbFileInput').click()"
+                style="padding:6px 12px;font-size:12px">+ Add Knowledge Documents</button>
+            </div>
+            <div id="kbList" class="kb-list"
+              style="max-height:100px;overflow-y:auto;background:rgba(255,255,255,0.03);border-radius:4px;padding:4px">
+              <div style="font-size:11px;color:rgba(255,255,255,0.2);padding:4px">No KB documents loaded</div>
+            </div>
+
+          </div>
+
+          <p class="form-section-label">SQL Training Dataset</p>
+          <div class="form-group">
+            <div id="sqlDatasetStatus" style="font-size:12px;color:var(--color-primary)">Checking `data_set`...</div>
+            <div id="sqlDatasetHint" style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:6px">
+              SQL notes, tutorials, PDFs, and images from `data_set` are indexed automatically.
+            </div>
+          </div>
+
+          <!-- Custom Instructions -->
+          <p class="form-section-label">Settings</p>
+          <div class="form-group">
+            <label class="form-label">Custom Instructions (Optional)</label>
+            <textarea class="form-input" id="instructionsInput"
+              placeholder="Example: Answer naturally: clear, structured, and direct." style="height:48px;"></textarea>
+          </div>
+
+          <button class="btn-start" id="btnStart" onclick="startSession()" disabled>
+            Start Interview Session
+          </button>
+        </div>
+
+        <!-- Sessions Tab -->
+        <div class="tab-panel" id="panelSessions">
+          <div id="sessionsList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ INTERVIEW OVERLAY SCREEN ═══ -->
+  <div id="interviewScreen" class="screen">
+    <div class="interview-bar" id="interviewBar">
+      <div class="interview-top-card">
+      <div class="interview-header">
+        <div class="int-logo"><img src="../assets/logo.png" alt="SpeakEasyAI" class="brand-logo-image"></div>
+        <span class="int-brand">Speakeasy AI</span>
+
+        <button class="int-btn" id="btnAIAnswer" onclick="triggerAIAnswer()" title="AI Answer (Ctrl+Enter)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+          AI Answer
+        </button>
+
+        <button class="int-btn" id="btnAnalyzeScreen" onclick="triggerAnalyzeScreen()"
+          title="Analyze Screen (Ctrl+Shift+Enter)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <path d="M21 15l-5-5L5 21" />
+          </svg>
+          Screen
+        </button>
+
+        <button class="int-btn" id="btnTeleprompter" onclick="toggleTeleprompter()"
+          title="Near-camera Prompt (Ctrl+Shift+T)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="14" rx="2" />
+            <path d="M7 9h10M7 13h10M10 18v2M14 18v2" />
+          </svg>
+          Prompt
+        </button>
+
+        <!-- Auto AI toggle -->
+        <div class="auto-toggle-wrap">
+          <span class="auto-label">Auto AI</span>
+          <label class="toggle-switch" title="Auto detect & answer questions">
+            <input type="checkbox" id="autoAIToggle" onchange="toggleAutoAI(this.checked)" checked>
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+
+        <!-- System audio toggle -->
+        <button class="int-icon-btn active mic" id="btnMic" onclick="toggleMic()" title="System audio">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M12 1a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" y1="19" x2="12" y2="23" />
+            <line x1="8" y1="23" x2="16" y2="23" />
+          </svg>
+        </button>
+
+        <!-- AI Panel toggle -->
+        <button class="int-icon-btn" id="btnAIPanel" onclick="toggleAIPanel()" title="Toggle AI Panel (Ctrl+Shift+A)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <path d="M9 9h6M9 12h6M9 15h4" />
+          </svg>
+        </button>
+
+        <!-- Transcript Box toggle -->
+        <button class="int-icon-btn" id="btnTranscriptBox" onclick="toggleTranscriptBox()" title="Toggle Transcription Box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
+        </button>
+
+        <!-- Click-through toggle -->
+        <button class="int-icon-btn" id="btnClickThrough" onclick="toggleClickThrough()"
+          title="Click-through Mode (Ctrl+Shift+X)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path
+              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+        </button>
+
+        <!-- Layout Toggle -->
+        <button class="int-icon-btn btn-layout-toggle" onclick="toggleLayout()" title="Switch to Portrait">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><rect x="7" y="2" width="10" height="20" rx="2"/><line x1="7" y1="6" x2="17" y2="6"/></svg>
+        </button>
+
+        <!-- Minimize -->
+        <button class="int-icon-btn" onclick="collapseApp()" title="Minimize to Logo (Ctrl+Shift+C)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 14 10 14 10 20"></polyline>
+            <polyline points="20 10 14 10 14 4"></polyline>
+            <line x1="14" y1="10" x2="21" y2="3"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+        </button>
+
+        <!-- Settings -->
+        <button class="int-icon-btn" onclick="openSettings()" title="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+
+        <span class="spacer"></span>
+
+        <span class="session-timer" id="sessionTimer">00:00</span>
+
+        <button class="int-icon-btn" onclick="exportCurrentSession()" title="Export Current Session">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+        </button>
+
+        <button class="stop-btn" onclick="stopSession()" title="End Session">
+          <svg viewBox="0 0 10 10" fill="currentColor">
+            <rect width="10" height="10" rx="2" />
+          </svg>
+        </button>
+      </div>
+      </div>
+
+      <!-- Transcript bar -->
+      <div class="interview-transcript-card">
+        <div class="transcript-bar">
+          <div class="transcript-dot connecting" id="transcriptDot"></div>
+          <span class="transcript-text" id="transcriptText">Initializing system audio...</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="teleprompterContainer">
+      <div class="teleprompter-toolbar" style="      -webkit-app-region: drag !important;">
+        <div class="teleprompter-meta">
+          <span class="ai-toolbar-title">Near-Camera Prompt</span>
+          <span class="teleprompter-status" id="teleprompterStatus">Waiting for the next AI answer...</span>
+        </div>
+
+        <div class="nav-controls" style="-webkit-app-region: no-drag;">
+          <button class="nav-btn-mini" onclick="adjustTeleprompterFont(-2)" title="Smaller Text">A-</button>
+          <span class="nav-page-info" id="teleprompterFontInfo">28px</span>
+          <button class="nav-btn-mini" onclick="adjustTeleprompterFont(2)" title="Larger Text">A+</button>
+          <button class="nav-btn-mini" onclick="adjustTeleprompterSpeed(-6)" title="Slower">Slower</button>
+          <span class="nav-page-info" id="teleprompterSpeedInfo">1.0x</span>
+          <button class="nav-btn-mini" onclick="adjustTeleprompterSpeed(6)" title="Faster">Faster</button>
+          <button class="nav-btn-mini" id="teleprompterPauseBtn" onclick="toggleTeleprompterPause()">Pause</button>
+          <button class="nav-btn-mini" onclick="resetTeleprompterScroll()" title="Back to Top">Top</button>
+          <button class="nav-btn-mini" onclick="closeTeleprompter()" title="Close" style="color:#f87171">X</button>
+        </div>
+      </div>
+
+      <div class="teleprompter-stage">
+        <div class="teleprompter-question" id="teleprompterQuestion">Latest answer</div>
+        <div class="teleprompter-viewport" id="teleprompterViewport">
+          <div class="teleprompter-content" id="teleprompterContent">
+            <p class="teleprompter-empty">Generate an answer and it will appear here in an easier near-camera reading layout.</p>
+          </div>
+        </div>
+        <div class="teleprompter-tip" id="teleprompterTip">Keep the overlay near your webcam for the most natural eye-line.</div>
+      </div>
+    </div>
+
+    <!-- AI Panel (Connected) -->
+    <div id="aiPanelContainer">
+      <div class="ai-toolbar" style="      -webkit-app-region: drag !important;">
+        <span class="ai-toolbar-title" id="aiPanelTitle">AI Response</span>
+
+        <div class="nav-controls" style="        -webkit-app-region: no-drag !important; margin-right:12px">
+          <button class="nav-btn-mini" onclick="toggleTopBar()" title="Toggle Top Bar" style="margin-right:8px; border: 1px solid rgba(255,255,255,0.2); padding: 2px 6px;">
+            👁 Top Bar
+          </button>
+          <span style="font-size:10px;color:rgba(255,255,255,0.3);margin-right:4px">Opacity</span>
+          <input type="range" id="panelOpacitySlider" min="20" max="100" value="96"
+            style="width:60px;height:4px;cursor:pointer" oninput="updatePanelOpacity(this.value)">
+        </div>
+
+        <div class="nav-controls" style="        -webkit-app-region: no-drag !important;">
+          <button class="nav-btn-mini" id="panelPrevBtn" onclick="navigatePanel(-1)" disabled>‹</button>
+          <span class="nav-page-info" id="panelPageInfo">0/0</span>
+          <button class="nav-btn-mini" id="panelNextBtn" onclick="navigatePanel(1)" disabled>›</button>
+          <button class="nav-btn-mini" onclick="clearPanel()" title="Clear" style="margin-left:4px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px">
+              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+            </svg>
+          </button>
+          <button class="nav-btn-mini" onclick="closeAIPanel()" title="Close" style="color:#f87171">✕</button>
+        </div>
+      </div>
+
+      <div class="ai-content" id="aiPanelContent">
+        <!-- AI Answers will appear here -->
+      </div>
+
+      <div class="kb-question-section ai-kbd-strip">
+        <div class="kb-question-header">
+          <span class="kb-question-label">🔍 KBD Search</span>
+          <button class="kbd-expand-btn" id="kbdExpandBtn" type="button" onclick="toggleKBDExpanded()" title="Toggle KBD Results">Show More ▼</button>
+        </div>
+
+        <div class="kbd-search-input-wrap">
+          <svg class="kbd-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="6"></circle>
+            <line x1="16" y1="16" x2="21" y2="21"></line>
+          </svg>
+          <input id="kbdQuestionSearch" class="kbd-search-input" type="text" placeholder="Search KBD questions..." aria-label="Search KBD questions" />
+        </div>
+
+        <div id="kbQuestionList" class="kb-question-list" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <!-- Transcript Box (Connected) -->
+    <div id="transcriptBoxContainer">
+      <div class="ai-toolbar" style="-webkit-app-region: drag;">
+        <span class="ai-toolbar-title">Transcription History</span>
+        <div class="nav-controls" style="        -webkit-app-region: no-drag !important;">
+          <button class="nav-btn-mini" onclick="toggleTopBar()" title="Toggle Top Bar" style="margin-right:8px; border: 1px solid rgba(255,255,255,0.2); padding: 2px 6px;">
+            👁 Top Bar
+          </button>
+          <button class="nav-btn-mini" onclick="clearTranscriptBox()" title="Clear">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px">
+              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+            </svg>
+          </button>
+          <button class="nav-btn-mini" onclick="closeTranscriptBox()" title="Close" style="color:#f87171; margin-left: 4px;">✕</button>
+        </div>
+      </div>
+      <div class="ai-content" id="transcriptBoxContent" style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.6; padding: 12px; overflow-y: auto;">
+        <!-- Transcript history will appear here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Collapsed logo -->
+  <div id="collapsedLogo" onclick="expandApp()"><img src="../assets/logo.png" alt="SpeakEasyAI" class="collapsed-logo-image"></div>
+
+  <!-- Toast notification -->
+  <div id="toast"></div>
+
+  <script src="renderer.js"></script>
+</body>
+
+</html>

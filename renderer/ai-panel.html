@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Panel</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; user-select:none; -webkit-user-select:none;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; cursor:default!important; }
+    input, textarea { user-select:text; -webkit-user-select:text; cursor:text!important; }
+    html, body { background: transparent; overflow:hidden; height:100%; width:100%;
+                 -webkit-font-smoothing: antialiased; }
+
+    @keyframes spin { to { transform:rotate(360deg); } }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+    .panel {
+      width:100%; height:100%;
+      background: rgba(13,13,13,0.94);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-top: none;                    /* flush against overlay bar */
+      border-radius: 0 0 16px 16px;       /* only round bottom corners */
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      gap: 0;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex; align-items: center;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      gap: 8px;
+      flex-shrink: 0;
+      margin: 0;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: linear-gradient(180deg, rgba(18,18,18,0.98), rgba(18,18,18,0.94));
+      -webkit-app-region: drag;
+    }
+    .toolbar-title { -webkit-app-region: drag; }
+    .toolbar button,
+    .toolbar button *,
+    .toolbar input,
+    .toolbar input *,
+    .toolbar select,
+    .toolbar select * {
+      -webkit-app-region: no-drag;
+    }
+
+    .toolbar-title { font-size: 12px; font-weight: 600; color:rgba(255,255,255,0.7); letter-spacing:-0.01em; }
+
+    .opacity-control { display:flex; align-items:center; gap:6px; }
+    .opacity-label { font-size:11px; color:rgba(255,255,255,0.4); }
+    .opacity-slider {
+      width:72px; height:4px; appearance:none;
+      background: rgba(255,255,255,0.15); border-radius:2px; outline:none;
+    }
+    .opacity-slider::-webkit-slider-thumb {
+      appearance:none; width:12px; height:12px;
+      background:rgba(255,255,255,0.7); border-radius:50%; cursor:pointer;
+    }
+    .opacity-val { font-size:11px; color:rgba(255,255,255,0.4); min-width:28px; }
+
+    .spacer { flex:1; }
+
+    /* Nav */
+    .nav-area { display:flex; align-items:center; gap:4px; }
+    .nav-btn {
+      background:none; border:none; color:rgba(255,255,255,0.4);
+      font-size:16px; padding:2px 6px; border-radius:4px;
+      transition:all 0.15s;
+    }
+    .nav-btn:hover { color:rgba(255,255,255,0.8); background:rgba(255,255,255,0.06); }
+    .nav-btn:disabled { opacity:0.2; cursor:not-allowed!important; }
+    .page-indicator { font-size:11px; color:rgba(255,255,255,0.35); min-width:36px; text-align:center; }
+
+    .tb-btn {
+      background:none; border:none;
+      color:rgba(255,255,255,0.35); padding:4px 6px;
+      border-radius:4px; font-size:12px;
+      transition:all 0.15s; display:flex; align-items:center; gap:4px;
+    }
+    .tb-btn:hover { color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.06); }
+    .tb-btn svg { width:13px; height:13px; }
+
+    /* Content area */
+    .content {
+      min-height:0;
+      overflow-y:auto;
+      overflow-x:hidden;
+      padding:0 14px 14px;
+      margin:0;
+      color: rgba(255,255,255,0.85);
+      scroll-behavior:smooth;
+      overscroll-behavior:contain;
+      -webkit-overflow-scrolling:touch;
+      background: transparent;
+      user-select:text;
+      -webkit-user-select:text;
+      cursor:text!important;
+    }
+    .content * { user-select:text; -webkit-user-select:text; cursor:text!important; }
+    .content > * { margin-top:0 !important; }
+    .response-shell {
+      width:100%;
+      min-height:100%;
+      display:flex;
+      flex-direction:column;
+      gap:0;
+      margin:0;
+      padding:0;
+    }
+    #responseBody {
+      width:100%;
+      margin:0;
+      padding:0;
+    }
+    .content::-webkit-scrollbar { width:4px; }
+    .content::-webkit-scrollbar-track { background:transparent; }
+    .content::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.12); border-radius:2px; }
+
+    /* Markdown rendered content */
+    .content h1,.content h2,.content h3 {
+      color:rgba(255,255,255,0.9); margin:16px 0 8px;
+      font-weight:600; letter-spacing:-0.02em;
+    }
+    .content h1 { font-size:16px; } .content h2 { font-size:14px; } .content h3 { font-size:13px; }
+    .content p { color:rgba(255,255,255,0.75); font-size:13px; line-height:1.65; margin-bottom:10px; }
+    .content ul,.content ol { padding-left:20px; margin-bottom:10px; }
+    .content li { color:rgba(255,255,255,0.75); font-size:13px; line-height:1.6; margin-bottom:4px; }
+    .content strong { color:rgba(255,255,255,0.9); font-weight:600; }
+    .content em { color:rgba(255,255,255,0.7); font-style:italic; }
+    .content code {
+      background:rgba(255,255,255,0.08); padding:2px 6px;
+      border-radius:4px; font-family:'Consolas','Monaco',monospace; font-size:12px;
+      color:#7dd3fc;
+    }
+    .content pre {
+      background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08);
+      border-radius:8px; padding:12px 14px; margin:10px 0;
+      overflow-x:auto; position:relative;
+    }
+    .content pre code { background:none; padding:0; font-size:12px; color:#e2e8f0; line-height:1.6; }
+    .content blockquote {
+      border-left:3px solid rgba(200,137,74,0.6);
+      padding-left:12px; margin:10px 0;
+      color:rgba(255,255,255,0.6);
+    }
+    .content hr { border:none; border-top:1px solid rgba(255,255,255,0.08); margin:14px 0; }
+
+    /* Copy button on code blocks */
+    .copy-code-btn {
+      position:absolute; top:8px; right:8px;
+      background:rgba(255,255,255,0.08); border:none;
+      color:rgba(255,255,255,0.4); padding:3px 8px;
+      border-radius:4px; font-size:11px; transition:all 0.15s;
+    }
+    .copy-code-btn:hover { background:rgba(255,255,255,0.14); color:rgba(255,255,255,0.8); }
+    .copy-code-btn.copied { color:#4ade80; }
+    .copy-code-btn, .copy-code-btn * { user-select:none; -webkit-user-select:none; cursor:pointer!important; }
+
+    /* Loading state */
+    .ai-loading {
+      display:flex; align-items:center; gap:10px;
+      color:rgba(255,255,255,0.5); font-size:13px;
+      padding:8px 0; animation:fadeIn 0.2s;
+    }
+    .ai-spinner {
+      width:16px; height:16px;
+      border:2px solid rgba(255,255,255,0.15);
+      border-top-color:rgba(200,137,74,0.8);
+      border-radius:50%; animation:spin 0.7s linear infinite;
+      flex-shrink:0;
+    }
+
+    .question-label {
+      font-size:11px; font-weight:600;
+      color:rgba(200,137,74,0.9);
+      margin:0;
+      padding:14px 0 10px;
+      letter-spacing:-0.01em;
+      display:flex; align-items:center; gap:6px;
+    }
+    .source-stamp {
+      display:inline-flex; align-items:center;
+      margin:0 0 10px;
+      padding:5px 10px;
+      border-radius:999px;
+      background:rgba(125,211,252,0.08);
+      border:1px solid rgba(125,211,252,0.18);
+      color:#93c5fd;
+      font-size:11px;
+      font-weight:600;
+    }
+
+    .empty-state {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      height:100%; color:rgba(255,255,255,0.25); font-size:13px;
+      padding:16px;
+      gap:10px;
+    }
+    .empty-state svg { width:36px; height:36px; opacity:0.3; }
+
+    /* Chat input */
+    .chat-bar {
+      border-top:1px solid rgba(255,255,255,0.07);
+      padding:10px 12px;
+      display:flex; align-items:center; gap:8px;
+      flex-shrink:0;
+      margin:0;
+      background:rgba(0,0,0,0.2);
+    }
+    .chat-input {
+      flex:1; background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:8px; padding:7px 10px;
+      color:rgba(255,255,255,0.85); font-size:12px;
+      outline:none; transition:all 0.15s;
+      user-select:text; -webkit-user-select:text;
+      cursor:text!important;
+    }
+    .chat-input:focus { border-color:rgba(255,255,255,0.2); background:rgba(255,255,255,0.08); }
+    .chat-input::placeholder { color:rgba(255,255,255,0.25); }
+    .send-btn {
+      width:30px; height:30px;
+      background:rgba(44,62,80,0.8); border:none;
+      border-radius:7px; color:rgba(255,255,255,0.7);
+      display:flex; align-items:center; justify-content:center;
+      transition:all 0.15s;
+    }
+    .send-btn:hover { background:rgba(44,62,80,1); color:white; }
+    .send-btn:disabled { opacity:0.3; }
+    .send-btn svg { width:14px; height:14px; }
+
+    /* ── Responsive Layout ── */
+    @media (max-width: 600px) {
+      .panel {
+        border-radius: 0 0 12px 12px;
+      }
+
+      .toolbar {
+        padding: 6px 10px;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .toolbar-title {
+        font-size: 11px;
+      }
+
+      .opacity-control {
+        gap: 4px;
+      }
+
+      .opacity-slider {
+        width: 56px;
+      }
+
+      .nav-area {
+        gap: 2px;
+      }
+
+      .content {
+        padding: 0 10px 10px;
+      }
+
+      .chat-bar {
+        padding: 8px 10px;
+      }
+
+      .chat-input {
+        font-size: 12px;
+        padding: 6px 8px;
+      }
+    }
+
+    @media (orientation: landscape) and (max-height: 500px) {
+      .toolbar {
+        padding: 4px 10px;
+      }
+
+      .content {
+        padding: 0 12px 8px;
+      }
+
+      .chat-bar {
+        padding: 6px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="panel">
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <span class="toolbar-title">Speakeasy AI · Responses</span>
+
+    <div class="opacity-control">
+      <span class="opacity-label">Opacity</span>
+      <input type="range" class="opacity-slider" id="opacitySlider" min="20" max="100" value="94"
+        oninput="updateOpacity(this.value)">
+      <span class="opacity-val" id="opacityVal">94%</span>
+    </div>
+
+    <span class="spacer"></span>
+
+    <div class="nav-area">
+      <button class="nav-btn" id="prevBtn" onclick="navigate(-1)" disabled>‹</button>
+      <span class="page-indicator" id="pageIndicator">0 / 0</span>
+      <button class="nav-btn" id="nextBtn" onclick="navigate(1)" disabled>›</button>
+    </div>
+
+    <button class="tb-btn" onclick="clearAll()" title="Clear all">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+      </svg>
+    </button>
+    <button class="tb-btn" onclick="openClipboardHistory()" title="Clipboard History">📋</button>
+    <button class="tb-btn" onclick="window.electronAPI.closeAIPanel()" title="Close">✕</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content" id="content">
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>
+      <span>Press Ctrl+Enter to generate an AI answer<br>or Ctrl+Shift+Enter to analyze the screen</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+const responses = [];  // array of { question, html, sourceStamp }
+let currentIdx = -1;
+let streamingText = '';
+let isStreaming = false;
+let chatContext = '';
+let responseQuestionEl = null;
+let responseSourceEl = null;
+let responseBodyEl = null;
+let pendingStreamRender = false;
+
+const content = document.getElementById('content');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const pageIndicator = document.getElementById('pageIndicator');
+const EMPTY_STATE_HTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span>Press Ctrl+Enter to generate an AI answer</span></div>';
+const contentInnerHTMLDescriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+
+// ── Marked.js minimal inline renderer ────────────────────────────────────────
+// We use a simple markdown renderer without external deps
+
+function renderMarkdown(md) {
+  if (!md) return '';
+  let html = md
+    // Code blocks
+    .replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+      const escaped = code.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return `<pre><button class="copy-code-btn" onclick="copyCode(this)">Copy</button><code class="${lang ? 'language-'+lang : ''}">${escaped}</code></pre>`;
+    })
+    // Inline code
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // Headers
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    // Bold + italic
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // HR
+    .replace(/^---$/gm, '<hr>')
+    // Blockquote
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    // Unordered list
+    .replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+    // Ordered list
+    .replace(/^\d+\. (.+)$/gm, '<oli>$1</oli>')
+    .replace(/(<oli>.*<\/oli>\n?)+/g, m => `<ol>${m.replace(/oli/g, 'li')}</ol>`)
+    // Paragraphs
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>');
+
+  // Wrap in paragraph if not already block-level
+  if (!html.startsWith('<h') && !html.startsWith('<ul') && !html.startsWith('<pre') && !html.startsWith('<blockquote')) {
+    html = `<p>${html}</p>`;
+  }
+  return html;
+}
+
+function copyCode(btn) {
+  const code = btn.closest('pre').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function updateNav() {
+  const total = responses.length;
+  prevBtn.disabled = currentIdx <= 0;
+  nextBtn.disabled = currentIdx >= total - 1 || total === 0;
+  pageIndicator.textContent = total > 0 ? `${currentIdx + 1} / ${total}` : '0 / 0';
+}
+
+function resetResponseRefs() {
+  responseQuestionEl = null;
+  responseSourceEl = null;
+  responseBodyEl = null;
+}
+
+function renderContentMarkup(markup) {
+  contentInnerHTMLDescriptor.set.call(content, markup);
+  resetResponseRefs();
+}
+
+function ensureResponseShell(question, sourceStamp = '') {
+  if (!responseQuestionEl || !responseBodyEl || !responseSourceEl) {
+    renderContentMarkup('<div class="response-shell"><div class="question-label" id="responseQuestion"></div><div class="source-stamp" id="responseSource" style="display:none"></div><div id="responseBody"></div></div>');
+    responseQuestionEl = document.getElementById('responseQuestion');
+    responseSourceEl = document.getElementById('responseSource');
+    responseBodyEl = document.getElementById('responseBody');
+  }
+
+  responseQuestionEl.textContent = `💬 ${question}`;
+  if (responseSourceEl) {
+    if (sourceStamp) {
+      responseSourceEl.textContent = sourceStamp;
+      responseSourceEl.style.display = 'inline-flex';
+    } else {
+      responseSourceEl.textContent = '';
+      responseSourceEl.style.display = 'none';
+    }
+  }
+  return responseBodyEl;
+}
+
+function renderStreamingChunk() {
+  pendingStreamRender = false;
+  const q = responses[currentIdx]?.question || 'Generating...';
+  const sourceStamp = responses[currentIdx]?.sourceStamp || '';
+  const bodyEl = ensureResponseShell(q, sourceStamp);
+  bodyEl.innerHTML = renderMarkdown(streamingText);
+  content.scrollTop = content.scrollHeight;
+}
+
+function scheduleStreamingRender() {
+  if (pendingStreamRender) return;
+  pendingStreamRender = true;
+  requestAnimationFrame(renderStreamingChunk);
+}
+
+function extractResponseMarkup(markup) {
+  const scratch = document.createElement('div');
+  scratch.innerHTML = markup;
+
+  const questionNode = scratch.querySelector('.question-label');
+  if (!questionNode) return null;
+
+  const rawQuestion = questionNode.textContent || '';
+  const firstSpace = rawQuestion.indexOf(' ');
+  const question = firstSpace >= 0 ? rawQuestion.slice(firstSpace + 1).trim() : rawQuestion.trim();
+
+  questionNode.remove();
+
+  return {
+    question,
+    bodyHtml: scratch.innerHTML
+  };
+}
+
+Object.defineProperty(content, 'innerHTML', {
+  configurable: true,
+  get() {
+    return contentInnerHTMLDescriptor.get.call(content);
+  },
+  set(markup) {
+    if (typeof markup !== 'string') {
+      renderContentMarkup(String(markup));
+      return;
+    }
+
+    const parsed = extractResponseMarkup(markup);
+    if (!parsed) {
+      renderContentMarkup(markup);
+      return;
+    }
+
+    if (isStreaming && !parsed.bodyHtml.includes('ai-loading')) {
+      scheduleStreamingRender();
+      return;
+    }
+
+    const bodyEl = ensureResponseShell(parsed.question || 'Answer');
+    bodyEl.innerHTML = parsed.bodyHtml;
+  }
+});
+
+function navigate(dir) {
+  const newIdx = currentIdx + dir;
+  if (newIdx < 0 || newIdx >= responses.length) return;
+  currentIdx = newIdx;
+  renderCurrent();
+  updateNav();
+}
+
+function renderCurrent() {
+  if (currentIdx < 0 || responses.length === 0) {
+    renderContentMarkup(EMPTY_STATE_HTML);
+    return;
+  }
+  const r = responses[currentIdx];
+  const sourceStampHtml = r.sourceStamp
+    ? `<div class="source-stamp">${escapeHtml(r.sourceStamp)}</div>`
+    : '';
+  content.innerHTML = `<div class="question-label">💬 ${escapeHtml(r.question)}</div>${sourceStampHtml}${r.html}`;
+  content.scrollTop = 0;
+  chatContext = r.html.replace(/<[^>]+>/g, '').substring(0, 800);
+}
+
+function clearAll() {
+  responses.length = 0;
+  currentIdx = -1;
+  streamingText = '';
+  isStreaming = false;
+  renderCurrent();
+  updateNav();
+}
+
+// ── Clipboard History UI ───────────────────────────────────────────────────
+let clipboardHistoryVisible = false;
+async function openClipboardHistory() {
+  try {
+    const res = await window.electronAPI.getClipboardHistory();
+    const history = (res && res.history) ? res.history : [];
+    renderClipboardHistory(history);
+  } catch (e) {
+    console.warn('Failed to load clipboard history', e);
+  }
+}
+
+function renderClipboardHistory(items) {
+  clipboardHistoryVisible = true;
+  const panel = document.createElement('div');
+  panel.id = 'clipboardHistoryPanel';
+  panel.style.position = 'absolute';
+  panel.style.top = '48px';
+  panel.style.right = '12px';
+  panel.style.width = '320px';
+  panel.style.maxHeight = '60%';
+  panel.style.overflow = 'auto';
+  panel.style.background = 'rgba(10,10,10,0.96)';
+  panel.style.border = '1px solid rgba(255,255,255,0.06)';
+  panel.style.padding = '8px';
+  panel.style.borderRadius = '8px';
+  panel.style.zIndex = 9999;
+
+  const title = document.createElement('div');
+  title.textContent = 'Clipboard History';
+  title.style.color = 'rgba(255,255,255,0.9)';
+  title.style.fontWeight = '600';
+  title.style.marginBottom = '8px';
+  panel.appendChild(title);
+
+  if (!items || items.length === 0) {
+    const empty = document.createElement('div');
+    empty.textContent = 'No clipboard items yet.';
+    empty.style.color = 'rgba(255,255,255,0.45)';
+    panel.appendChild(empty);
+  } else {
+    items.forEach(it => {
+      const row = document.createElement('div');
+      row.style.padding = '8px';
+      row.style.borderRadius = '6px';
+      row.style.marginBottom = '6px';
+      row.style.cursor = 'pointer';
+      row.style.background = 'rgba(255,255,255,0.02)';
+      row.onmouseenter = () => row.style.background = 'rgba(255,255,255,0.04)';
+      row.onmouseleave = () => row.style.background = 'rgba(255,255,255,0.02)';
+
+      const label = document.createElement('div');
+      label.textContent = (it.type || 'Text') + ' · ' + new Date(it.timestamp).toLocaleString();
+      label.style.fontSize = '11px';
+      label.style.color = 'rgba(255,255,255,0.5)';
+      label.style.marginBottom = '4px';
+
+      const snippet = document.createElement('div');
+      snippet.textContent = it.text.length > 240 ? it.text.slice(0, 240) + '…' : it.text;
+      snippet.style.fontSize = '13px';
+      snippet.style.color = 'rgba(255,255,255,0.85)';
+
+      row.appendChild(label);
+      row.appendChild(snippet);
+      row.onclick = () => {
+        // On click, set chat input and trigger generateAnswer
+        const input = document.getElementById('chatInput');
+        if (input) input.value = it.text;
+        const isCoding = /Code|SQL|JavaScript|Python|Java|C#|Coding|LeetCode|HackerRank/i.test(it.type || '');
+        window.electronAPI.generateAnswer({ question: it.text, isCoding: Boolean(isCoding) });
+        closeClipboardHistory();
+      };
+
+      panel.appendChild(row);
+    });
+  }
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = 'Close';
+  closeBtn.style.marginTop = '6px';
+  closeBtn.onclick = closeClipboardHistory;
+  panel.appendChild(closeBtn);
+
+  // Remove existing if present
+  const existing = document.getElementById('clipboardHistoryPanel');
+  if (existing) existing.remove();
+  document.body.appendChild(panel);
+}
+
+function closeClipboardHistory() {
+  clipboardHistoryVisible = false;
+  const existing = document.getElementById('clipboardHistoryPanel');
+  if (existing) existing.remove();
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Message handler from main ──────────────────────────────────────────────
+window.electronAPI.onAIPanelMessage(raw => {
+  try {
+    const msg = JSON.parse(raw);
+
+    if (msg.type === 'new-response') {
+      streamingText = '';
+      isStreaming = true;
+      responses.push({ question: msg.question || 'Answer', html: '', sourceStamp: msg.sourceStamp || '' });
+      currentIdx = responses.length - 1;
+      const sourceStampHtml = msg.sourceStamp
+        ? `<div class="source-stamp">${escapeHtml(msg.sourceStamp)}</div>`
+        : '';
+      content.innerHTML = `<div class="question-label">💬 ${escapeHtml(msg.question || 'Generating...')}</div>${sourceStampHtml}<div class="ai-loading"><div class="ai-spinner"></div>Generating answer...</div>`;
+      updateNav();
+
+    } else if (msg.type === 'stream-text') {
+      streamingText = msg.text;
+      if (responses[currentIdx] && msg.sourceStamp) {
+        responses[currentIdx].sourceStamp = msg.sourceStamp;
+      }
+      const html = renderMarkdown(streamingText);
+      const q = responses[currentIdx]?.question || '';
+      const sourceStamp = responses[currentIdx]?.sourceStamp || '';
+      const sourceStampHtml = sourceStamp
+        ? `<div class="source-stamp">${escapeHtml(sourceStamp)}</div>`
+        : '';
+      content.innerHTML = `<div class="question-label">💬 ${escapeHtml(q)}</div>${sourceStampHtml}${html}`;
+      content.scrollTop = content.scrollHeight;
+
+    } else if (msg.type === 'finalize-response') {
+      isStreaming = false;
+      if (responses[currentIdx]) {
+        responses[currentIdx].html = renderMarkdown(streamingText);
+      }
+      renderCurrent();
+      updateNav();
+
+    } else if (msg.type === 'analyzing-screen') {
+      responses.push({ question: 'Screen Analysis', html: '', sourceStamp: '' });
+      currentIdx = responses.length - 1;
+      content.innerHTML = '<div class="ai-loading"><div class="ai-spinner"></div>Analyzing screen content...</div>';
+      updateNav();
+
+    } else if (msg.type === 'no-question') {
+      responses.pop();
+      currentIdx = responses.length - 1;
+      content.innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:13px;padding:8px 0;">No interview question detected on screen.</div>';
+      if (responses[currentIdx]) renderCurrent();
+      updateNav();
+
+    } else if (msg.type === 'error') {
+      if (isStreaming && responses[currentIdx]) {
+        responses[currentIdx].html = `<p style="color:#f87171;">${escapeHtml(msg.text)}</p>`;
+        isStreaming = false;
+      } else {
+        content.innerHTML = `<p style="color:#f87171;font-size:13px;">${escapeHtml(msg.text)}</p>`;
+      }
+      updateNav();
+    }
+  } catch(e) {
+    console.error('AI panel message error:', e);
+  }
+});
+
+// ── Opacity control ───────────────────────────────────────────────────────────
+function updateOpacity(val) {
+  document.getElementById('opacityVal').textContent = val + '%';
+  window.electronAPI.setOpacity(parseInt(val));
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChat();
+  }
+}
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const text = input.value.trim();
+  if (!text || isStreaming) return;
+
+  input.disabled = true;
+  sendBtn.disabled = true;
+  isStreaming = true;
+  streamingText = '';
+
+  const question = text;
+  input.value = '';
+
+  responses.push({ question, html: '', sourceStamp: '' });
+  currentIdx = responses.length - 1;
+  content.innerHTML = `<div class="question-label">💬 ${escapeHtml(question)}</div><div class="ai-loading"><div class="ai-spinner"></div>Generating...</div>`;
+  updateNav();
+
+  await window.electronAPI.generateAnswer({ question, isCoding: false });
+
+  input.disabled = false;
+  sendBtn.disabled = false;
+  input.focus();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+updateNav();
+</script>
+</body>
+</html>
